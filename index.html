@@ -207,7 +207,7 @@
         ":": "colon",
         ",": "comma",
         "©": "copyright",
-        "$": "dollar",
+        $: "dollar",
         "...": "ellipsis",
         "!": "exclamation mark",
         "#": "hashtag",
@@ -220,7 +220,7 @@
         "?": "question mark",
         ";": "semicolon",
         "/": "slash",
-        "_": "underscore",
+        _: "underscore",
         // Add mappings for other punctuation marks...
       };
 
@@ -232,7 +232,7 @@
       // Function to convert a character to its corresponding audio file path
       function getAudioFilePath(char) {
         const isLetter = /[a-zA-Z]/.test(char);
-        const isPunctuation = /[^\w\s]/.test(char);
+        const isPunctuation = /[^\w\s]|_/.test(char);
         const variation = getRandomVariation();
 
         if (isLetter) {
