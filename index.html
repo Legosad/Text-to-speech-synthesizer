@@ -41,7 +41,7 @@
         max-width: 600px;
         resize: none;
       }
-      #speak {
+      button {
         padding: 1rem;
         background-color: green;
         color: white;
@@ -53,13 +53,47 @@
         width: 100%;
         max-width: 200px;
       }
-      #speak:disabled {
+      button:disabled {
         background-color: #cccccc;
         cursor: not-allowed;
       }
       audio {
         width: 100%;
         max-width: 600px;
+      }
+      .audio {
+        width: 100vw;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        align-items: center;
+      }
+      a {
+        padding: 1rem;
+        background-color: green;
+        border: none;
+        border-radius: 1rem;
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      a[disabled] {
+        pointer-events: none;
+        opacity: 0.6;
+      }
+      select {
+        padding: 5px;
+        font-size: 1rem;
+        background-color: #fff;
+        color: green;
+        font-weight: 700;
+        border-radius: 1rem;
+        outline: none;
+        border: 1px solid green;
+      }
+      select > option {
+        background-color: #fff;
+        color: cadetblue;
       }
 
       /* Responsive Styles */
@@ -90,11 +124,23 @@
         <br />
         <button id="speak">Generate Speech</button>
       </div>
-      <audio id="audioPlayer" controls></audio>
+      <div class="audio">
+        <audio id="audioPlayer" controls></audio>
+        <a id="download-btn" disabled>Download Audio</a>
+        <select id="playbackSpeed">
+          <option value="0.5">0.5x</option>
+          <option value="1" selected>1x</option>
+          <option value="1.5">1.5x</option>
+          <option value="2">2x</option>
+          <option value="2.5">2.5x</option>
+          <option value="3">3x</option>
+        </select>
+      </div>
     </div>
 
     <script>
       let isPlaying = false;
+      let currentSource = null;
       const audioMap = {
         a: "/sounds/alphabet/a/",
         b: "/sounds/alphabet/b/",
@@ -125,7 +171,7 @@
         // Add mappings for the remaining letters...
         apostrophe: "/sounds/punctuation marks/apostrophe/",
         asterisk: "/sounds/punctuation marks/asterisk/",
-        at: "/sounds/punctuation marks/at the rate/",
+        "at the rate": "/sounds/punctuation marks/at the rate/",
         "close parentheses": "/sounds/punctuation marks/close parentheses/",
         "close quotation mark":
           "/sounds/punctuation marks/close quotation mark/",
@@ -154,7 +200,7 @@
       const punctuationMap = {
         "'": "apostrophe",
         "*": "asterisk",
-        "@": "at",
+        "@": "at the rate",
         ")": "close parentheses",
         '"': "close quotation mark",
         "]": "close square bracket",
@@ -184,9 +230,10 @@
       }
 
       // Function to convert a character to its corresponding audio file path
-      function getAudioFilePath(char, variation) {
+      function getAudioFilePath(char) {
         const isLetter = /[a-zA-Z]/.test(char);
         const isPunctuation = /[^\w\s]/.test(char);
+        const variation = getRandomVariation();
 
         if (isLetter) {
           const lowerChar = char.toLowerCase();
@@ -245,17 +292,36 @@
 
       // Play the concatenated audio
       function playJoinedAudio(buffer) {
+        if (isPlaying) {
+          currentSource.stop(); // Stop the current source if it's already playing
+        }
         const source = audioContext.createBufferSource();
         source.buffer = buffer;
+        // Get the selected playback speed
+        const playbackSpeed = parseFloat(
+          document.getElementById("playbackSpeed").value
+        );
+        source.playbackRate.value = playbackSpeed; // Set the playback speed
+
         source.connect(audioContext.destination);
         source.start(0);
+
+        currentSource = source; // Keep track of the current source
+        isPlaying = true;
 
         // Convert buffer to WAV format and create a Blob URL for the audio element
         const wavBuffer = bufferToWave(buffer, buffer.length);
         const blob = new Blob([wavBuffer], { type: "audio/wav" });
         const url = URL.createObjectURL(blob);
 
-        document.getElementById("audioPlayer").src = url;
+        const audioPlayer = document.getElementById("audioPlayer");
+        audioPlayer.src = url;
+
+        // Enable the download button and set the link to the audio blob
+        const downloadBtn = document.getElementById("download-btn");
+        downloadBtn.removeAttribute("disabled");
+        downloadBtn.href = url;
+        downloadBtn.setAttribute("download", "synthesized_audio.wav");
         source.onended = () => {
           isPlaying = false; // Reset the flag
           document.getElementById("speak").disabled = false; // Re-enable the button
@@ -265,13 +331,20 @@
       // Play audio files in sequence
       async function playTextAudio(text) {
         if (isPlaying) return;
-        isPlaying = true;
         const chars = text.split(""); // Split text into characters
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         let audioBufferList = [];
-        let variation = getRandomVariation();
-        for (let char of chars) {
-          const audioFilePath = getAudioFilePath(char, variation);
+        for (let i = 0; i < chars.length; i++) {
+          if (
+            chars[i] === "." &&
+            chars[i + 1] === "." &&
+            chars[i + 2] === "."
+          ) {
+            // Replace the three dots with ellipsis
+            chars.splice(i, 3, "..."); // Remove 3 elements and add "..."
+          }
+
+          const audioFilePath = getAudioFilePath(chars[i]);
           if (audioFilePath) {
             const audioBuffer = await fetchAudio(audioFilePath);
             audioBufferList.push(audioBuffer);
@@ -284,6 +357,7 @@
 
       // Add event listener to the button
       document.getElementById("speak").addEventListener("click", () => {
+        debugger;
         document.getElementById("speak").disabled = true;
         const text = document.getElementById("textInput").value;
         if (text === "") {
@@ -292,11 +366,24 @@
         }
         playTextAudio(text);
       });
-
+      document
+        .getElementById("playbackSpeed")
+        .addEventListener("change", () => {
+          debugger;
+          document.getElementById("speak").disabled = true;
+          const text = document.getElementById("textInput").value;
+          if (text === "") {
+            document.getElementById("speak").disabled = false;
+            return;
+          }
+          playTextAudio(text);
+        });
+      //Add
       // Convert buffer to WAV format
-      function bufferToWave(abuffer, len) {
+      function bufferToWave(abuffer, len, playbackSpeed = 1) {
         const numOfChan = abuffer.numberOfChannels;
-        const length = len * numOfChan * 2 + 44;
+        const adjustedLength = Math.floor(len / playbackSpeed); // Adjust based on playback speed
+        const length = adjustedLength * numOfChan * 2 + 44;
         const buffer = new ArrayBuffer(length);
         const view = new DataView(buffer);
         const channels = [];
@@ -304,37 +391,6 @@
         let pos = 0;
 
         // Write WAVE header
-        setUint32(0x46464952); // "RIFF"
-        setUint32(length - 8); // file length - 8
-        setUint32(0x45564157); // "WAVE"
-
-        setUint32(0x20746d66); // "fmt " chunk
-        setUint32(16); // length = 16
-        setUint16(1); // PCM (uncompressed)
-        setUint16(numOfChan);
-        setUint32(abuffer.sampleRate);
-        setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-        setUint16(numOfChan * 2); // block-align
-        setUint16(16); // 16-bit (hardcoded)
-
-        setUint32(0x61746164); // "data" - chunk
-        setUint32(length - pos - 4); // chunk length
-
-        // Write interleaved audio data
-        for (let i = 0; i < abuffer.numberOfChannels; i++)
-          channels.push(abuffer.getChannelData(i));
-
-        while (pos < length) {
-          for (let i = 0; i < numOfChan; i++) {
-            const sample = Math.max(-1, Math.min(1, channels[i][offset]));
-            const intSample =
-              (sample < 0 ? sample * 0x8000 : sample * 0x7fff) | 0;
-            view.setInt16(pos, intSample, true);
-            pos += 2;
-          }
-          offset++;
-        }
-
         function setUint16(data) {
           view.setUint16(pos, data, true);
           pos += 2;
@@ -343,6 +399,42 @@
         function setUint32(data) {
           view.setUint32(pos, data, true);
           pos += 4;
+        }
+
+        setUint32(0x46464952); // "RIFF"
+        setUint32(length - 8); // file length - 8
+        setUint32(0x45564157); // "WAVE"
+
+        setUint32(0x20746d66); // "fmt " chunk
+        setUint32(16); // length = 16
+        setUint16(1); // PCM (uncompressed)
+        setUint16(numOfChan); // number of channels
+
+        const adjustedSampleRate = Math.floor(
+          abuffer.sampleRate / playbackSpeed
+        ); // Adjust sample rate
+        setUint32(adjustedSampleRate); // sample rate
+        setUint32(adjustedSampleRate * 2 * numOfChan); // byte rate
+        setUint16(numOfChan * 2); // block align
+        setUint16(16); // bits per sample
+
+        setUint32(0x61746164); // "data" chunk
+        setUint32(length - pos - 4); // data length
+
+        // Write interleaved audio data
+        for (let i = 0; i < abuffer.numberOfChannels; i++) {
+          channels.push(abuffer.getChannelData(i));
+        }
+
+        while (offset < adjustedLength) {
+          for (let i = 0; i < numOfChan; i++) {
+            const sample = Math.max(-1, Math.min(1, channels[i][offset] || 0)); // Prevent out of bounds
+            const intSample =
+              (sample < 0 ? sample * 0x8000 : sample * 0x7fff) | 0;
+            view.setInt16(pos, intSample, true);
+            pos += 2;
+          }
+          offset++;
         }
 
         return buffer;
