@@ -1,0 +1,104 @@
+* {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+      .text-to-speech {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        align-items: center;
+        padding: 2rem;
+      }
+      h1 {
+        font-size: 4rem;
+        text-align: center;
+      }
+      .text-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 1rem;
+        width: 100%;
+      }
+      textarea {
+        border: 3px solid #777;
+        border-radius: 1rem;
+        padding: 1rem;
+        width: 100%;
+        max-width: 600px;
+        resize: none;
+      }
+      button {
+        padding: 1rem;
+        background-color: green;
+        color: white;
+        font-size: 1rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        width: 100%;
+        max-width: 200px;
+      }
+      button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+      audio {
+        width: 100%;
+        max-width: 600px;
+      }
+      .audio {
+        width: 100vw;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        align-items: center;
+      }
+      a {
+        padding: 1rem;
+        background-color: green;
+        border: none;
+        border-radius: 1rem;
+        color: #fff;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      a[disabled] {
+        pointer-events: none;
+        opacity: 0.6;
+      }
+      select {
+        padding: 5px;
+        font-size: 1rem;
+        background-color: #fff;
+        color: green;
+        font-weight: 700;
+        border-radius: 1rem;
+        outline: none;
+        border: 1px solid green;
+      }
+      select > option {
+        background-color: #fff;
+        color: cadetblue;
+      }
+
+      /* Responsive Styles */
+      @media (min-width: 768px) {
+        .text-container {
+          flex-direction: row;
+          justify-content: center;
+        }
+        textarea {
+          width: auto;
+        }
+        #speak {
+          width: auto;
+        }
+      }
